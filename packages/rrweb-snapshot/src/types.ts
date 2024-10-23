@@ -149,7 +149,7 @@ export type SlimDOMOptions = Partial<{
   headMetaAuthorship: boolean;
   headMetaVerification: boolean;
 }>;
-
+//Partial将type和quality变为可选属性
 export type DataURLOptions = Partial<{
   type: string;
   quality: number;

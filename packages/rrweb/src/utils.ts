@@ -309,6 +309,7 @@ export function legacy_isTouchEvent(
   return Boolean((event as TouchEvent).changedTouches);
 }
 
+//这段代码的核心目的是确保 NodeList 对象可以像数组一样使用 forEach 方法，尤其是在老旧浏览器中没有原生支持的情况下。
 export function polyfill(win = window) {
   if ('NodeList' in win && !win.NodeList.prototype.forEach) {
     // eslint-disable-next-line @typescript-eslint/unbound-method

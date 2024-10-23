@@ -24,35 +24,37 @@ type pendingCanvasMutationsMap = Map<
   canvasMutationWithType[]
 >;
 
+//构造函数,可选项
 export interface CanvasManagerConstructorOptions {
-  recordCanvas: boolean;
-  mutationCb: canvasMutationCallback;
-  win: IWindow;
-  blockClass: blockClass;
-  blockSelector: string | null;
-  mirror: Mirror;
-  sampling?: 'all' | number;
-  dataURLOptions: DataURLOptions;
+  recordCanvas: boolean;//是否录制canvas
+  mutationCb: canvasMutationCallback;//canvas变化回调
+  win: IWindow;//
+  blockClass: blockClass;//字符串或者正则表达式，样式表
+  blockSelector: string | null;//选择器，selector
+  mirror: Mirror;//
+  sampling?: 'all' | number;//可选参数，可以没有这个参数，如果使用这个参数，值为all或者number类型
+  dataURLOptions: DataURLOptions;//dataUrl选项
 }
 
+//定义类：CanvasManager
 export class CanvasManager {
-  private pendingCanvasMutations: pendingCanvasMutationsMap = new Map();
-  private rafStamps: RafStamps = { latestId: 0, invokeId: null };
-  private options: CanvasManagerConstructorOptions;
+  private pendingCanvasMutations: pendingCanvasMutationsMap = new Map();//map，存放待办canvas变化
+  private rafStamps: RafStamps = { latestId: 0, invokeId: null };//requestAnimationFrame?
+  private options: CanvasManagerConstructorOptions;//构造函数选项
   private mirror: Mirror;
 
-  private shadowDoms = new Set<WeakRef<ShadowRoot>>();
+  private shadowDoms = new Set<WeakRef<ShadowRoot>>();//弱引用（不使用时即被清理）shadowDom
   private windowsSet = new WeakSet<IWindow>();
   private windows: WeakRef<IWindow>[] = [];
 
-  private mutationCb: canvasMutationCallback;
-  private restoreHandlers: listenerHandler[] = [];
+  private mutationCb: canvasMutationCallback;//canvas变化回调
+  private restoreHandlers: listenerHandler[] = [];//监听处理器数组
   private frozen = false;
   private locked = false;
 
   private snapshotInProgressMap: Map<number, boolean> = new Map();
   private worker: ImageBitmapDataURLRequestWorker | null = null;
-
+  //重置 清空各种数组、集合
   public reset() {
     this.pendingCanvasMutations.clear();
     this.restoreHandlers.forEach((handler) => {
@@ -72,7 +74,7 @@ export class CanvasManager {
       this.options.recordCanvas &&
       typeof this.options.sampling === 'number'
     ) {
-      this.worker = this.initFPSWorker();
+      this.worker = this.initFPSWorker();//初始化FPDWorker
     }
   }
 
@@ -91,7 +93,7 @@ export class CanvasManager {
   public unlock() {
     this.locked = false;
   }
-
+  //构造函数
   constructor(options: CanvasManagerConstructorOptions) {
     const {
       sampling = 'all',
@@ -106,7 +108,7 @@ export class CanvasManager {
     this.options = options;
 
     if (recordCanvas && sampling === 'all') {
-      this.startRAFTimestamping();
+      this.startRAFTimestamping();//刷新时间戳
       this.startPendingCanvasMutationFlusher();
     }
     if (recordCanvas && typeof sampling === 'number') {
@@ -356,7 +358,7 @@ export class CanvasManager {
   private startPendingCanvasMutationFlusher() {
     requestAnimationFrame(() => this.flushPendingCanvasMutations());
   }
-
+  //回调方法，记录每次动画执行的时间戳
   private startRAFTimestamping() {
     const setLatestRAFTimestamp = (timestamp: DOMHighResTimeStamp) => {
       this.rafStamps.latestId = timestamp;

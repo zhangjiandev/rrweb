@@ -487,7 +487,7 @@ export type canvasMutationCommand = {
   args: Array<unknown>;
   setter?: true;
 };
-
+//联合类型
 export type canvasMutationParam =
   | {
       id: number;
@@ -502,7 +502,7 @@ export type canvasMutationParam =
 export type canvasMutationWithType = {
   type: CanvasContext;
 } & canvasMutationCommand;
-
+//定义了一个方法/函数类型（需要实现），参数为canvasMutationParam，返回值为空；
 export type canvasMutationCallback = (p: canvasMutationParam) => void;
 
 export type canvasManagerMutationCallback = (

@@ -41,8 +41,9 @@ import {
   unregisterErrorHandler,
 } from './error-handler';
 
+//包装事件
 function wrapEvent(e: event): eventWithTime {
-  return {
+  return {//合并e和timestamp
     ...e,
     timestamp: nowTimestamp(),
   };
@@ -53,8 +54,9 @@ let wrappedEmit!: (e: eventWithTime, isCheckout?: boolean) => void;
 let takeFullSnapshot!: (isCheckout?: boolean) => void;
 let canvasManager!: CanvasManager;
 let recording = false;
-
+//创建mirro对象
 const mirror = createMirror();
+//定义record方法，返回监听handler
 function record<T = eventWithTime>(
   options: recordOptions<T> = {},
 ): listenerHandler | undefined {
@@ -94,38 +96,44 @@ function record<T = eventWithTime>(
     errorHandler,
   } = options;
 
+  //注册错误handler（处理器、处理程序）
   registerErrorHandler(errorHandler);
 
+  //在发送frame中?
+  //如果recordCrossOriginIframes为真，返回值为'window.parnet === window'，否则返回true
+  //如果记录跨域iframe，并且在父页面中，返回true
   const inEmittingFrame = recordCrossOriginIframes
     ? window.parent === window
     : true;
 
-  let passEmitsToParent = false;
-  if (!inEmittingFrame) {
+  let passEmitsToParent = false;//是否传递、发送到父级
+  if (!inEmittingFrame) {//录制跨域iframe，并且当前window不是父页面
     try {
       // throws if parent is cross-origin
-      if (window.parent.document) {
-        passEmitsToParent = false; // if parent is same origin we collect iframe events from the parent
+      if (window.parent.document) {//（在iframe中）判断iframe与父页面是否同源
+        passEmitsToParent = false; // if parent is same origin we collect iframe events from the parent，如果同源，在父级页面收集iframe中的event
       }
-    } catch (e) {
-      passEmitsToParent = true;
+    } catch (e) {//如果iframe与父页面不同源，会抛出错误信息
+      passEmitsToParent = true;//如果不同源，需要在iframe中收集event，并发送到父级
     }
   }
 
   // runtime checks for user options
-  if (inEmittingFrame && !emit) {
+  if (inEmittingFrame && !emit) {//如果iframe不跨域，需要提供emit方法
     throw new Error('emit function is required');
   }
-  // move departed options to new options
+  // move departed options to new options 该选项已经废弃，使用sampling替代，此处是否了兼容性
   if (mousemoveWait !== undefined && sampling.mousemove === undefined) {
     sampling.mousemove = mousemoveWait;
   }
 
   // reset mirror in case `record` this was called earlier
+  // 重置镜像，以防之前调用过“record”
   mirror.reset();
 
+  //输入屏蔽选项，是否将某个输入项变为*
   const maskInputOptions: MaskInputOptions =
-    maskAllInputs === true
+    maskAllInputs === true//将所有输入内容记录为 *
       ? {
           color: true,
           date: true,
@@ -148,6 +156,7 @@ function record<T = eventWithTime>(
       ? _maskInputOptions
       : { password: true };
 
+  //去除 DOM 中不必要的部分，给dom瘦身
   const slimDOMOptions: SlimDOMOptions =
     _slimDOMOptions === true || _slimDOMOptions === 'all'
       ? {
@@ -168,9 +177,12 @@ function record<T = eventWithTime>(
       ? _slimDOMOptions
       : {};
 
+  //这段代码的核心目的是确保 NodeList 对象可以像数组一样使用 forEach 方法，尤其是在老旧浏览器中没有原生支持的情况下。
   polyfill();
 
+  //最近的全量快照
   let lastFullSnapshotEvent: eventWithTime;
+  //增量快照数量
   let incrementalSnapshotCount = 0;
 
   const eventProcessor = (e: eventWithTime): T => {
