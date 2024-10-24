@@ -189,49 +189,51 @@ function record<T = eventWithTime>(
   const eventProcessor = (e: eventWithTime): T => {
     for (const plugin of plugins || []) {//
       if (plugin.eventProcessor) {
-        e = plugin.eventProcessor(e);
+        e = plugin.eventProcessor(e);//执行插件
       }
     }
     if (
       packFn &&
       // Disable packing events which will be emitted to parent frames.
-      !passEmitsToParent
+      !passEmitsToParent //如果不是跨域iframe
     ) {
-      e = packFn(e) as unknown as eventWithTime;
+      e = packFn(e) as unknown as eventWithTime;//封装时间为eventWithTime
     }
     return e as unknown as T;
   };
+  //封装Emit
   wrappedEmit = (e: eventWithTime, isCheckout?: boolean) => {
     if (
-      mutationBuffers[0]?.isFrozen() &&
-      e.type !== EventType.FullSnapshot &&
+      mutationBuffers[0]?.isFrozen() && //变化已冻结
+      e.type !== EventType.FullSnapshot && //不是全量快照
       !(
-        e.type === EventType.IncrementalSnapshot &&
-        e.data.source === IncrementalSource.Mutation
+        e.type === EventType.IncrementalSnapshot && //增量快照
+        e.data.source === IncrementalSource.Mutation //增量变化
       )
     ) {
       // we've got a user initiated event so first we need to apply
       // all DOM changes that have been buffering during paused state
-      mutationBuffers.forEach((buf) => buf.unfreeze());
+      mutationBuffers.forEach((buf) => buf.unfreeze());//解冻
     }
 
-    if (inEmittingFrame) {
+    if (inEmittingFrame) {//非跨域的情况，直接发送事件信息
       emit?.(eventProcessor(e), isCheckout);
-    } else if (passEmitsToParent) {
+    } else if (passEmitsToParent) {//跨域的情况，需要将事件发送到父级页面
       const message: CrossOriginIframeMessageEventContent<T> = {
         type: 'rrweb',
         event: eventProcessor(e),
         origin: window.location.origin,
         isCheckout,
       };
+      //发送消息到父级页面
       window.parent.postMessage(message, '*');
     }
 
-    if (e.type === EventType.FullSnapshot) {
+    if (e.type === EventType.FullSnapshot) {//如果是全量快照
       lastFullSnapshotEvent = e;
-      incrementalSnapshotCount = 0;
+      incrementalSnapshotCount = 0;//增量快照技术为0
     } else if (e.type === EventType.IncrementalSnapshot) {
-      // attach iframe should be considered as full snapshot
+      // attach iframe should be considered as full snapshot iframe考虑使用全量快照
       if (
         e.data.source === IncrementalSource.Mutation &&
         e.data.isAttachIframe
