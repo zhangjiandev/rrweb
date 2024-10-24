@@ -185,8 +185,9 @@ function record<T = eventWithTime>(
   //增量快照数量
   let incrementalSnapshotCount = 0;
 
+  //时间处理器，返回类型T
   const eventProcessor = (e: eventWithTime): T => {
-    for (const plugin of plugins || []) {
+    for (const plugin of plugins || []) {//
       if (plugin.eventProcessor) {
         e = plugin.eventProcessor(e);
       }
